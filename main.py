@@ -34,7 +34,7 @@ def grab_station_name():
 
 
 def grab_train_list():
-    url = 'https://kyfw.12306.cn/otn/resources/js/query/train_list.js?scriptVer'
+    url = 'https://kyfw.12306.cn/otn/resources/js/query/train_list.js'
     r = grab(url)
     r = r.replace('var train_list =', '')
     train_list = json.loads(r)
