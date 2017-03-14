@@ -102,9 +102,156 @@ def grab_train_schedule():
                 ts_err.append(ts)
     with open('train_schedule.json', 'w', encoding='utf-8') as fp:
         json.dump(train_schedule, fp, ensure_ascii=False, sort_keys=True, indent=2)
+    return True
 
 
 if __name__ == '__main__':
     # print(grab_station_name())
     # print(grab_train_list())
-    grab_train_schedule()
+    # print(grab_train_schedule())
+    # ------------------------------------------------------------------------
+    # Dijkstra算法——通过边实现松弛
+    # 指定一个点到其他各顶点的路径——单源最短路径
+
+    # 初始化图参数
+    G = {1: {1: 0, 2: 1, 3: 12},
+         2: {2: 0, 3: 9, 4: 3},
+         3: {3: 0, 5: 5},
+         4: {3: 4, 4: 0, 5: 13, 6: 15},
+         5: {5: 0, 6: 4},
+         6: {6: 0}}
+
+
+    # 每次找到离源点最近的一个顶点，然后以该顶点为重心进行扩展
+    # 最终的到源点到其余所有点的最短路径
+    # 一种贪婪算法
+
+    def Dijkstra(G, v0, INF=999):
+        """ 使用 Dijkstra 算法计算指定点 v0 到图 G 中任意点的最短路径的距离
+            INF 为设定的无限远距离值
+            此方法不能解决负权值边的图
+        """
+        book = set()
+        minv = v0
+
+        # 源顶点到其余各顶点的初始路程
+        dis = dict((k, INF) for k in G.keys())
+        dis[v0] = 0
+
+        while len(book) < len(G):
+            book.add(minv)  # 确定当期顶点的距离
+            for w in G[minv]:  # 以当前点的中心向外扩散
+                if dis[minv] + G[minv][w] < dis[w]:  # 如果从当前点扩展到某一点的距离小与已知最短距离
+                    dis[w] = dis[minv] + G[minv][w]  # 对已知距离进行更新
+
+            new = INF  # 从剩下的未确定点中选择最小距离点作为新的扩散点
+            for v in dis.keys():
+                if v in book: continue
+                if dis[v] < new:
+                    new = dis[v]
+                    minv = v
+        return dis
+
+
+    # dis = Dijkstra(G, v0=1)
+    # print(dis.values())
+    # dict_values([0, 1, 8, 4, 13, 17])
+    # ------------------------------------------------------------------------
+    from collections import defaultdict
+    from heapq import *
+
+    edges = [
+        ("A", "B", 7),
+        ("A", "D", 5),
+        ("B", "C", 8),
+        ("B", "D", 9),
+        ("B", "E", 7),
+        ("C", "E", 5),
+        ("D", "E", 15),
+        ("D", "F", 6),
+        ("E", "F", 8),
+        ("E", "G", 9),
+        ("F", "G", 15),
+        ("F", "G", 11)
+    ]
+
+
+    def dijkstra(edges, f, t):
+        g = defaultdict(list)
+        for l, r, c in edges:
+            g[l].append((c, r))
+
+        q, seen = [(0, f, ())], set()
+        while q:
+            (cost, v1, path) = heappop(q)
+            if v1 not in seen:
+                seen.add(v1)
+                path = (v1, path)
+                if v1 == t:
+                    return (cost, path)
+
+                for c, v2 in g.get(v1, ()):
+                    if v2 not in seen:
+                        heappush(q, (cost + c, v2, path))
+
+        return float("inf")
+
+
+    # print("=== Dijkstra ===")
+    # print(edges)
+    # print("A -> E:")
+    # print(dijkstra(edges, "A", "E"))
+    # (14, ('E', ('B', ('A', ()))))
+    print("F -> G:")
+    print(dijkstra(edges, "F", "G"))
+    # (11, ('G', ('F', ())))
+    # ------------------------------------------------------------------------
+
+    distance = {(1, 2): 2,
+                (1, 3): 1,
+                (2, 3): 2,
+                (2, 4): 1,
+                (2, 5): 3,
+                (3, 4): 4,
+                (4, 5): 1,
+                (3, 6): 3,
+                (5, 7): 4,
+                (6, 7): 1}
+    maxcount = 7
+    stack = list()
+    dst = dict()
+    path = dict()
+
+
+    def Probe(sourcenode, desnode):
+        if sourcenode == desnode: return
+        stack.append(sourcenode)
+        for i in range(1, maxcount + 1):
+            if (sourcenode, i) in distance.keys() and i not in stack:
+                if (dst.get(sourcenode, 0) + distance[(sourcenode, i)] < dst.get(i, 1000)):
+                    dst[i] = dst.get(sourcenode, 0) + distance[(sourcenode, i)]
+                    path[i] = sourcenode
+        if sourcenode in dst.keys():
+            del dst[sourcenode]
+        if not len(dst.keys()):
+            return True
+        item = sorted(dst.items(), key=lambda d: d[1])[0][0]
+        Probe(item, desnode)
+
+
+    def searchPath(sourcenode, desnode):
+        if sourcenode == desnode:
+            return
+        if desnode in path.keys():
+            searchPath(sourcenode, path[desnode])
+            print('path %d->%d' % (path[desnode], desnode))
+
+
+            # Probe(1, 7)
+            # print(path)
+            # {2: 1, 3: 1, 4: 2, 5: 4, 6: 3, 7: 6}
+            # searchPath(1, 5)
+            # path 1->2
+            # path 2->4
+            # path 4->5
+            # ------------------------------------------------------------------------
