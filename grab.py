@@ -68,39 +68,39 @@ def grab_train_schedule(date):
     with open('station_name.json', 'r', encoding='utf-8') as sn, open('train_list.json', 'r', encoding='utf-8') as tl:
         station_name = json.load(sn)
         train_list = json.load(tl)
-        ts_err = []
-        for i in train_list:
-            train_no = i['train_no']
-            # print(i['train_no'], i['from_station'], i['to_station'])
-            for j in station_name:
-                if i['from_station'] == j['station_name']:
-                    from_station_telecode = j['telecode']
-                if i['to_station'] == j['station_name']:
-                    to_station_telecode = j['telecode']
-            # print(train_no, from_station_telecode, to_station_telecode)
-            url = 'https://kyfw.12306.cn/otn/czxx/queryByTrainNo?train_no=%s&from_station_telecode=%s&to_station_telecode=%s&depart_date=%s' % (
-                train_no, from_station_telecode, to_station_telecode, date)
-            print(url)
-            ts = json.loads(grab(url))
-            try:
-                train = ts['data']
-                ts.clear()
-                ts['train'] = train
-                ts['train']['schedule'] = ts['train']['data']
-                del ts['train']['data']
-                ts['train']['start_station_name'] = ts['train']['schedule'][0]['start_station_name']
-                del ts['train']['schedule'][0]['start_station_name']
-                ts['train']['end_station_name'] = ts['train']['schedule'][0]['end_station_name']
-                del ts['train']['schedule'][0]['end_station_name']
-                ts['train']['station_train_code'] = ts['train']['schedule'][0]['station_train_code']
-                del ts['train']['schedule'][0]['station_train_code']
-                ts['train']['train_class_name'] = ts['train']['schedule'][0]['train_class_name']
-                del ts['train']['schedule'][0]['train_class_name']
-                ts['train']['service_type'] = ts['train']['schedule'][0]['service_type']
-                del ts['train']['schedule'][0]['service_type']
-                train_schedule.append(ts)
-            except IndexError as err:
-                ts_err.append(ts)
+    ts_err = []
+    for i in train_list:
+        train_no = i['train_no']
+        # print(i['train_no'], i['from_station'], i['to_station'])
+        for j in station_name:
+            if i['from_station'] == j['station_name']:
+                from_station_telecode = j['telecode']
+            if i['to_station'] == j['station_name']:
+                to_station_telecode = j['telecode']
+        # print(train_no, from_station_telecode, to_station_telecode)
+        url = 'https://kyfw.12306.cn/otn/czxx/queryByTrainNo?train_no=%s&from_station_telecode=%s&to_station_telecode=%s&depart_date=%s' % (
+            train_no, from_station_telecode, to_station_telecode, date)
+        print(url)
+        ts = json.loads(grab(url))
+        try:
+            train = ts['data']
+            ts.clear()
+            ts['train'] = train
+            ts['train']['schedule'] = ts['train']['data']
+            del ts['train']['data']
+            ts['train']['start_station_name'] = ts['train']['schedule'][0]['start_station_name']
+            del ts['train']['schedule'][0]['start_station_name']
+            ts['train']['end_station_name'] = ts['train']['schedule'][0]['end_station_name']
+            del ts['train']['schedule'][0]['end_station_name']
+            ts['train']['station_train_code'] = ts['train']['schedule'][0]['station_train_code']
+            del ts['train']['schedule'][0]['station_train_code']
+            ts['train']['train_class_name'] = ts['train']['schedule'][0]['train_class_name']
+            del ts['train']['schedule'][0]['train_class_name']
+            ts['train']['service_type'] = ts['train']['schedule'][0]['service_type']
+            del ts['train']['schedule'][0]['service_type']
+            train_schedule.append(ts)
+        except IndexError as err:
+            ts_err.append(ts)
     with open('train_schedule.json', 'w', encoding='utf-8') as fp:
         json.dump(train_schedule, fp, ensure_ascii=False, sort_keys=True, indent=2)
     return True
