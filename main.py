@@ -5,11 +5,12 @@ import grab
 import shortest_path
 
 if __name__ == '__main__':
+    pass
     # print(grab.grab_station_name())
     # print(grab.grab_train_list())
     print(grab.grab_train_schedule('2017-03-19'))
+    # print(shortest_path.get_edges('2017-03-19'))
     # ------------------------------------------------------------------------
-    # print(get_edges('2017-03-13'))
     # with open('edges.json', 'r', encoding='utf-8') as e:
     #     edges = json.load(e)
 
