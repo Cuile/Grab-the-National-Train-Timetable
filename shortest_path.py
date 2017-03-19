@@ -1,4 +1,8 @@
 # -*- coding: utf-8 -*-
+import json
+from datetime import datetime, timedelta
+
+
 # ------------------------------------------------------------------------
 
 # Dijkstra算法——通过边实现松弛
@@ -51,6 +55,8 @@ def dijkstra_1(G, v0, INF=999):
 # ------------------------------------------------------------------------
 from collections import defaultdict
 from heapq import *
+
+
 # edges = [
 #     ("上海虹桥", "苏州北", 23),
 #     ("苏州北", "南京南", 49),
@@ -123,15 +129,16 @@ def dijkstra_3_Probe(sourcenode, desnode):
     if not len(dst.keys()):
         return True
     item = sorted(dst.items(), key=lambda d: d[1])[0][0]
-    Probe(item, desnode)
+    dijkstra_3_Probe(item, desnode)
 
 
 def dijkstra_3_searchPath(sourcenode, desnode):
     if sourcenode == desnode:
         return
     if desnode in path.keys():
-        searchPath(sourcenode, path[desnode])
+        dijkstra_3_searchPath(sourcenode, path[desnode])
         print('path %d->%d' % (path[desnode], desnode))
+
 
 # Probe(1, 7)
 # print(path)
@@ -141,3 +148,41 @@ def dijkstra_3_searchPath(sourcenode, desnode):
 # path 2->4
 # path 4->5
 # ------------------------------------------------------------------------
+def get_edges(schedule_date):
+    with open('train_schedule.json', 'r', encoding='utf-8') as ts:
+        train_schedule = json.load(ts)
+
+    edges = []
+    year, month, day = schedule_date.split('-')
+    for train in train_schedule:
+        schedule = train['train']['schedule']
+        for station in range(len(schedule) - 1):
+            hour, minute = schedule[station]['start_time'].split(':')
+            start_time = datetime(int(year), int(month), int(day), int(hour), int(minute))
+            hour, minute = schedule[station + 1]['arrive_time'].split(':')
+            arrive_time = datetime(int(year), int(month), int(day), int(hour), int(minute))
+            if start_time > arrive_time:
+                arrive_time += timedelta(days=1)
+            edges.append((schedule[station]['station_name'],
+                          schedule[station + 1]['station_name'],
+                          int((arrive_time - start_time).seconds / 60)))
+
+    with open('edges.json', 'w', encoding='utf-8') as fp:
+        json.dump(edges, fp, ensure_ascii=False, sort_keys=True, indent=2)
+    return True
+
+
+def get_shortest_path(edges, start_station, arrive_station):
+    try:
+        path = dijkstra_2(edges, start_station, arrive_station)
+        path = str(path)
+        path = path.replace('(', '')
+        path = path.replace(')', '')
+        path = path.replace('\'', '')
+        path = path.replace(' ', '')
+        path = path.split(',')
+        path.pop()
+        path.reverse()
+        return [path[-1], ' -> '.join(path[:-1])]
+    except IndexError:
+        return ['无法到达']
