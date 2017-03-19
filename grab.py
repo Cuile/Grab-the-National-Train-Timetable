@@ -3,7 +3,6 @@ import json
 from concurrent.futures import ThreadPoolExecutor
 from datetime import date, timedelta
 
-
 import requests
 
 import common
@@ -26,7 +25,7 @@ def grab(url):
         'Referer': 'https://kyfw.12306.cn/otn/leftTicket/init',
         'Accept-Encoding': 'gzip, deflate, sdch, br',
         'Accept-Language': 'zh-CN,zh;q=0.8'}
-    return requests.get(url, headers=headers, verify=False).text
+    return requests.get(url, headers=headers, verify=False, timeout=5).text
 
 
 # ------------------------------------------------------------------------
@@ -79,12 +78,10 @@ def grab_train_list():
 
 
 # ------------------------------------------------------------------------
-train_schedule = []
-ts_err = []
 
 
-def grab_train_schedule_when_done(r):
-    ts = json.loads(r.result())
+def grab_callback(url):
+    ts = json.loads(grab(url))
     try:
         train = ts['data']
         ts.clear()
@@ -101,9 +98,10 @@ def grab_train_schedule_when_done(r):
         del ts['train']['schedule'][0]['train_class_name']
         ts['train']['service_type'] = ts['train']['schedule'][0]['service_type']
         del ts['train']['schedule'][0]['service_type']
-        train_schedule.append(ts)
+        print(ts)
+        return [True, ts]
     except IndexError as err:
-        ts_err.append(ts)
+        return [False, ts]
 
 
 def grab_train_schedule(d):
@@ -124,23 +122,30 @@ def grab_train_schedule(d):
         start_time + timedelta(days=2),
         start_time + timedelta(days=3)
     ]
+    urls = []
+    for d in dates:
+        for i in train_list:
+            train_no = i['train_no']
+            for j in station_name:
+                if i['from_station'] == j['station_name']:
+                    from_station_telecode = j['telecode']
+                if i['to_station'] == j['station_name']:
+                    to_station_telecode = j['telecode']
+            urls.append('https://kyfw.12306.cn/otn/czxx/queryByTrainNo?train_no=%s&from_station_telecode=%s&to_station_telecode=%s&depart_date=%s' % (
+                train_no,
+                from_station_telecode,
+                to_station_telecode,
+                d.isoformat()
+            ))
 
-    with ThreadPoolExecutor() as pool:
-        for d in dates:
-            print(d.isoformat())
-            for i in train_list:
-                train_no = i['train_no']
-                for j in station_name:
-                    if i['from_station'] == j['station_name']:
-                        from_station_telecode = j['telecode']
-                    if i['to_station'] == j['station_name']:
-                        to_station_telecode = j['telecode']
-
-                url = 'https://kyfw.12306.cn/otn/czxx/queryByTrainNo?train_no=%s&from_station_telecode=%s&to_station_telecode=%s&depart_date=%s' % (
-                    train_no, from_station_telecode, to_station_telecode, d.isoformat())
-                # print(url)
-                future_result = pool.submit(grab, url)
-                future_result.add_done_callback(grab_train_schedule_when_done)
+    train_schedule = []
+    ts_err = []
+    with ThreadPoolExecutor(max_workers=5) as pool:
+        for i in pool.map(grab_callback, urls):
+            if i[0]:
+                train_schedule.append(i[1])
+            else:
+                ts_err.append(i[1])
 
     with open('train_schedule.json', 'w', encoding='utf-8') as fp:
         json.dump(train_schedule, fp, ensure_ascii=False, sort_keys=True, indent=2)
