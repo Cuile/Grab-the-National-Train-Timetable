@@ -149,22 +149,23 @@ def dijkstra_3_searchPath(sourcenode, desnode):
 # path 4->5
 # ------------------------------------------------------------------------
 def get_edges(schedule_date):
-    with open('train_schedule.json', 'r', encoding='utf-8') as ts:
+    with open('get_train_schedule.json', 'r', encoding='utf-8') as ts:
         train_schedule = json.load(ts)
 
     edges = []
     year, month, day = schedule_date.split('-')
     for train in train_schedule:
+        print(train['train']['station_train_code'])
         schedule = train['train']['schedule']
         for station in range(len(schedule) - 1):
-            hour, minute = schedule[station]['start_time'].split(':')
+            hour, minute = schedule[str(station)]['start_time'].split(':')
             start_time = datetime(int(year), int(month), int(day), int(hour), int(minute))
-            hour, minute = schedule[station + 1]['arrive_time'].split(':')
+            hour, minute = schedule[str(station + 1)]['arrive_time'].split(':')
             arrive_time = datetime(int(year), int(month), int(day), int(hour), int(minute))
             if start_time > arrive_time:
                 arrive_time += timedelta(days=1)
-            edges.append((schedule[station]['station_name'],
-                          schedule[station + 1]['station_name'],
+            edges.append((schedule[str(station)]['station_name'],
+                          schedule[str(station + 1)]['station_name'],
                           int((arrive_time - start_time).seconds / 60)))
 
     with open('edges.json', 'w', encoding='utf-8') as fp:
@@ -185,4 +186,4 @@ def get_shortest_path(edges, start_station, arrive_station):
         path.reverse()
         return [path[-1], ' -> '.join(path[:-1])]
     except IndexError:
-        return ['无法到达']
+        return ['-']
